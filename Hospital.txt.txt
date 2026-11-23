@@ -1,0 +1,67 @@
+CREATE TABLE offices (
+    id BIGINT PRIMARY KEY,
+    state VARCHAR(255),
+    address VARCHAR(255),
+    phone VARCHAR(50)
+);
+
+
+CREATE TABLE doctors (
+    id BIGINT PRIMARY KEY,
+    office_id BIGINT,
+    name VARCHAR(255),
+    address VARCHAR(255),
+    phone VARCHAR(50),
+    specialization VARCHAR(255),
+    FOREIGN KEY (office_id) REFERENCES offices(id)
+);
+
+
+CREATE TABLE patients (
+    id BIGINT PRIMARY KEY,
+    health_record_number VARCHAR(255),
+    name VARCHAR(255),
+    address VARCHAR(255),
+    phone VARCHAR(50),
+    date_of_birth DATE
+);
+
+
+CREATE TABLE doctor_patient (
+    doctor_id BIGINT,
+    patient_id BIGINT,
+    PRIMARY KEY (doctor_id, patient_id),
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id),
+    FOREIGN KEY (patient_id) REFERENCES patients(id)
+);
+
+
+CREATE TABLE appointments (
+    id BIGINT PRIMARY KEY,
+    patient_id BIGINT,
+    doctor_id BIGINT,
+    scheduled_at DATETIME,
+    status VARCHAR(50),
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id)
+);
+
+CREATE TABLE prescriptions (
+    id BIGINT PRIMARY KEY,
+    patient_id BIGINT,
+    doctor_id BIGINT,
+    medication_name VARCHAR(255),
+    status VARCHAR(50),
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id)
+);
+
+CREATE TABLE medical_tests (
+    id BIGINT PRIMARY KEY,
+    patient_id BIGINT,
+    doctor_id BIGINT,
+    test_type VARCHAR(255),
+    status VARCHAR(50),
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id)
+);
