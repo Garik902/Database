@@ -52,3 +52,191 @@ CREATE TABLE bookings (
     CONSTRAINT uq_vehicle_service_date
         UNIQUE (vehicle_id, service_id, booking_date)
 );
+CREATE TABLE clients (
+    client_id INT PRIMARY KEY AUTO_INCREMENT,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    phone VARCHAR(25)
+);
+
+CREATE TABLE vehicles (
+    vehicle_id INT PRIMARY KEY AUTO_INCREMENT,
+    client_id INT NOT NULL,
+    make VARCHAR(50) NOT NULL,
+    model VARCHAR(50) NOT NULL,
+    license_plate VARCHAR(20) UNIQUE NOT NULL,
+    CONSTRAINT fk_vehicles_client
+        FOREIGN KEY (client_id) REFERENCES clients(client_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE services (
+    service_id INT PRIMARY KEY AUTO_INCREMENT,
+    service_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    CONSTRAINT chk_service_price CHECK (price >= 0)
+);
+
+CREATE TABLE detailers (
+    detailer_id INT PRIMARY KEY AUTO_INCREMENT,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    specialization VARCHAR(100)
+);
+
+CREATE TABLE bookings (
+    booking_id INT PRIMARY KEY AUTO_INCREMENT,
+    vehicle_id INT NOT NULL,
+    service_id INT NOT NULL,
+    detailer_id INT NOT NULL,
+    booking_date DATE NOT NULL,
+    status VARCHAR(30) DEFAULT 'Scheduled',
+    CONSTRAINT fk_bookings_vehicle
+        FOREIGN KEY (vehicle_id) REFERENCES vehicles(vehicle_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_bookings_service
+        FOREIGN KEY (service_id) REFERENCES services(service_id)
+        ON DELETE RESTRICT,
+    CONSTRAINT fk_bookings_detailer
+        FOREIGN KEY (detailer_id) REFERENCES detailers(detailer_id)
+        ON DELETE RESTRICT,
+    CONSTRAINT uq_vehicle_service_date
+        UNIQUE (vehicle_id, service_id, booking_date)
+);
+
+-- ============================================================================
+-- 2. SAMPLE DATA (DML - INSERT INTO)
+-- ============================================================================
+
+-- 5 Clients
+INSERT INTO clients (first_name, last_name, email, phone) VALUES
+('Armen', 'Sargsyan', 'armen.sargsyan@example.com', '+374-91-112233'),
+('Nare', 'Petrosyan', 'nare.petrosyan@example.com', '+374-93-445566'),
+('David', 'Grigoryan', 'david.grigoryan@example.com', '+374-77-778899'),
+('Ani', 'Hakobyan', 'ani.hakobyan@example.com', '+374-94-223344'),
+('Tigran', 'Avetisyan', 'tigran.avetisyan@example.com', '+374-55-667788');
+
+-- 6 Vehicles
+INSERT INTO vehicles (client_id, make, model, license_plate) VALUES
+(1, 'Toyota', 'Camry SE', '35 AB 777'),
+(1, 'Lexus', 'RX 350', '35 CD 101'),
+(2, 'BMW', '330i', '77 NP 330'),
+(3, 'Mercedes-Benz', 'E 300', '10 DG 500'),
+(4, 'Porsche', 'Macan', '88 AH 888'),
+(5, 'Hyundai', 'Sonata', '44 TA 212');
+
+-- 3 Detailers
+INSERT INTO detailers (first_name, last_name, email, specialization) VALUES
+('Hayk', 'Martirosyan', 'hayk.m@detailstudio.com', 'Paint Correction & Ceramic'),
+('Levon', 'Karapetyan', 'levon.k@detailstudio.com', 'Interior Extraction & Steam'),
+('Gor', 'Movsisyan', 'gor.m@detailstudio.com', 'Engine Bay & Self-Service Support');
+
+-- 4 Services
+INSERT INTO services (service_name, description, price) VALUES
+('Full Interior Extraction', 'Deep hot-water carpet/seat extraction, steam sanitization, and leather conditioning', 85.00),
+('Two-Stage Paint Correction', 'Machine compounding and polishing to remove swirl marks and oxidation', 220.00),
+('Ceramic Coating Package', '9H hydrophobic ceramic sealant application with 3-year protection', 350.00),
+('Self-Service Bay Rental', 'Hourly workshop bay access with rotary/DA polishers, extractor, and chemicals', 25.00);
+
+-- 8 Bookings
+INSERT INTO bookings (vehicle_id, service_id, detailer_id, booking_date, status) VALUES
+(1, 1, 2, '2026-11-10', 'Completed'),
+(1, 4, 3, '2026-11-15', 'Completed'),
+(2, 3, 1, '2026-11-16', 'Completed'),
+(3, 2, 1, '2026-11-18', 'Completed'),
+(4, 1, 2, '2026-11-19', 'In Progress'),
+(5, 3, 1, '2026-11-20', 'Scheduled'),
+(6, 4, 3, '2026-11-21', 'Scheduled'),
+(3, 1, 2, '2026-11-22', 'Scheduled');
+
+-- ============================================================================
+-- 3. REQUIRED SQL QUERIES
+-- ============================================================================
+
+-- Query 1: Display all clients.
+SELECT * FROM clients;
+
+-- Query 2: Display all vehicles with their owners' first and last names.
+SELECT 
+    v.vehicle_id,
+    v.make,
+    v.model,
+    v.license_plate,
+    c.first_name AS owner_first_name,
+    c.last_name AS owner_last_name
+FROM vehicles v
+JOIN clients c ON v.client_id = c.client_id;
+
+-- Query 3: Display all bookings for a selected vehicle (by license plate).
+SELECT 
+    b.booking_id,
+    v.license_plate,
+    v.make,
+    v.model,
+    s.service_name,
+    b.booking_date,
+    b.status
+FROM bookings b
+JOIN vehicles v ON b.vehicle_id = v.vehicle_id
+JOIN services s ON b.service_id = s.service_id
+WHERE v.license_plate = '35 AB 777';
+
+-- Query 4: Display all services performed by a selected detailer.
+SELECT 
+    d.first_name AS detailer_first_name,
+    d.last_name AS detailer_last_name,
+    s.service_name,
+    v.make,
+    v.model,
+    b.booking_date,
+    b.status
+FROM bookings b
+JOIN detailers d ON b.detailer_id = d.detailer_id
+JOIN services s ON b.service_id = s.service_id
+JOIN vehicles v ON b.vehicle_id = v.vehicle_id
+WHERE d.detailer_id = 1;
+
+-- Query 5: Count how many times each detailing service has been booked.
+SELECT 
+    s.service_id,
+    s.service_name,
+    COUNT(b.booking_id) AS total_bookings
+FROM services s
+LEFT JOIN bookings b ON s.service_id = b.service_id
+GROUP BY s.service_id, s.service_name
+ORDER BY total_bookings DESC;
+
+-- Query 6: Display detailing services with a price greater than 50.
+SELECT * 
+FROM services
+WHERE price > 50;
+
+-- Query 7: Display all clients ordered by last name.
+SELECT * 
+FROM clients
+ORDER BY last_name ASC;
+
+-- ============================================================================
+-- 4. BONUS: VIEW
+-- ============================================================================
+
+CREATE VIEW booking_overview AS
+SELECT 
+    s.service_name,
+    v.make,
+    v.model,
+    v.license_plate,
+    c.last_name AS client_last_name,
+    d.last_name AS detailer_last_name,
+    b.booking_date
+FROM bookings b
+JOIN services s ON b.service_id = s.service_id
+JOIN vehicles v ON b.vehicle_id = v.vehicle_id
+JOIN clients c ON v.client_id = c.client_id
+JOIN detailers d ON b.detailer_id = d.detailer_id;
+
+-- Test the View
+SELECT * FROM booking_overview;
